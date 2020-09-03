@@ -10,24 +10,24 @@ class JobAutoAssignUtil implements IJobAutoAssignUtil {
     const JobPercentages = { ...jobSplit, [Job.unassigned]: 0 }
     const activeJobs = Object.keys(jobSplit)
 
-    let isAssigned = false
+    let neededJob = null
+    let posibleNeededJobCurrentPercentageDiference = 0
 
     for (let i = 0; i < activeJobs.length; i++) {
       const job = activeJobs[i] as Job
       const desiredJobPercentage = JobPercentages[job]
       const currentJobPercentage = (crewSummary.counts[job] * 100) / (crewSummary.totalMembers - 1)
-      if (currentJobPercentage < desiredJobPercentage) {
-        await crewService.assignJob(memberId, job)
-        isAssigned = true
-        break
+      const currentJobPercentageDifference = desiredJobPercentage - currentJobPercentage
+
+      if (currentJobPercentageDifference > posibleNeededJobCurrentPercentageDiference) {
+        neededJob = job
+        posibleNeededJobCurrentPercentageDiference = currentJobPercentageDifference
       }
     }
 
     // fallback
-    if (!isAssigned) {
-      const randomJob = activeJobs[Math.floor(Math.random() * (activeJobs.length))] as Job
-      await crewService.assignJob(memberId, randomJob)
-    }
+    neededJob = neededJob || activeJobs[Math.floor(Math.random() * (activeJobs.length))] as Job
+    await crewService.assignJob(memberId, neededJob)
   }
 
   activateService () {
